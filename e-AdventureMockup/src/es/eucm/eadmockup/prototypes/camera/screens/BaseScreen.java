@@ -49,7 +49,7 @@ public class BaseScreen extends InputAdapter {
 	 * on the desktop a Java Preferences file in a ".prefs" directory will be created, and on iOS 
 	 * an NSMutableDictonary will be written to the given file). CAUTION: On the desktop platform, 
 	 * all libgdx applications share the same ".prefs" directory. To avoid collisions use specific 
-	 * names like "com.myname.game1.settings" instead of "settings"
+	 * names like "com.myname.game1.settings" instead of "settings".
      * Changes to a preferences instance will be cached in memory until flush() is invoked.
 	 */
 	public static Preferences settings;
