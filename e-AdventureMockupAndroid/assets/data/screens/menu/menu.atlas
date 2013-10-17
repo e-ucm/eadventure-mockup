@@ -1,0 +1,61 @@
+
+menu.png
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+background
+  rotate: false
+  xy: 1, 1
+  size: 600, 800
+  orig: 600, 800
+  offset: 0, 0
+  index: -1
+gallery
+  rotate: false
+  xy: 603, 511
+  size: 294, 290
+  orig: 294, 290
+  offset: 0, 0
+  index: -1
+libgdx
+  rotate: false
+  xy: 603, 219
+  size: 294, 290
+  orig: 294, 290
+  offset: 0, 0
+  index: -1
+name
+  rotate: false
+  xy: 603, 166
+  size: 161, 51
+  orig: 161, 51
+  offset: 0, 0
+  index: -1
+addButtonOff
+  rotate: false
+  xy: 603, 122
+  size: 43, 42
+  orig: 43, 42
+  offset: 0, 0
+  index: -1
+addButtonOn
+  rotate: false
+  xy: 766, 175
+  size: 43, 42
+  orig: 43, 42
+  offset: 0, 0
+  index: -1
+viewButtonOff
+  rotate: false
+  xy: 603, 78
+  size: 43, 42
+  orig: 43, 42
+  offset: 0, 0
+  index: -1
+viewButtonOn
+  rotate: false
+  xy: 648, 122
+  size: 43, 42
+  orig: 43, 42
+  offset: 0, 0
+  index: -1
