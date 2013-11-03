@@ -5,7 +5,7 @@ filter: Linear,Linear
 repeat: none
 camButton
   rotate: false
-  xy: 1, 1
+  xy: 2, 2
   size: 196, 89
   orig: 196, 89
   offset: 0, 0

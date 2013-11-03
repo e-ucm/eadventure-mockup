@@ -10,19 +10,23 @@ package es.eucm.eadmockup.prototypes.camera.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GLCommon;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 import es.eucm.eadmockup.prototypes.camera.IAnswerListener;
-import es.eucm.eadmockup.prototypes.camera.buttons.Button;
+import es.eucm.eadmockup.prototypes.camera.Slideshow;
+
 
 public class Menu extends BaseScreen implements IAnswerListener {
 
-	private static TextureRegion background, title, gallery;
-	private static Button add, view;
+	public static TextureRegion background, title, gallery;
 
 	private static final int QUESTION_EXIT = 1;
 
@@ -31,40 +35,90 @@ public class Menu extends BaseScreen implements IAnswerListener {
 
 	private boolean close;
 
+	private TextButton btn2;
+
+	private TextButton btn3;
+
+	private TextButton btn4;
+
 	@Override
 	public void create() {
 		TextureAtlas ta = am.get(atlas_src, TextureAtlas.class);
 		background = ta.findRegion("background");
 		title = ta.findRegion("name");
-		gallery = ta.findRegion("gallery");
-		add = new Button(ta.findRegion("addButtonOff"),ta.findRegion("addButtonOn"), 20, 20, 60, 60);
-		view = new Button(ta.findRegion("viewButtonOff"),ta.findRegion("viewButtonOn"), screenw-80, 20, 60, 60);   
+		gallery = ta.findRegion("gallery");   
 		touch = new Vector3();
+		setUpRoot();
+		
+		TextButton btn1 = new TextButton("Foto", skin);
+		btn1.addListener(new ClickListener(){
+			@Override
+			public void clicked( InputEvent event, float x, float y ) {
+				game.setScreen(game.cameraScreen);
+			}
+		});
+		
+		btn2 = new TextButton("Galería", skin);
+		btn2.addListener(new ClickListener(){
+			@Override
+			public void clicked( InputEvent event, float x, float y ) {
+				game.setScreen(game.view);
+			}
+		});
+		
+		btn3 = new TextButton("Grabar", skin);
+		btn3.addListener(new ClickListener(){
+			@Override
+			public void clicked( InputEvent event, float x, float y ) {
+				game.setScreen(game.video);
+			}
+		});
+		
+		btn4 = new TextButton("Vídeo", skin);
+		btn4.addListener(new ClickListener(){
+			@Override
+			public void clicked( InputEvent event, float x, float y ) {
+				game.setScreen(game.playingscreen);
+			}
+		});
+		
+		root.add(btn1).expand().bottom().left();
+		root.add(btn3).expand().bottom();
+		root.add(btn2).expand().bottom().right();
+		root.add(btn4).expand().bottom().right();
 	}
 
 	@Override
 	public void show() {
-		Gdx.input.setInputProcessor(this);
+		Gdx.input.setInputProcessor(inputMultiplexer);
 		close = false;
+		root.setVisible(true);
 	}
 
 	@Override
 	public void render(float delta) {
 		GLCommon gl = Gdx.gl;
-		gl.glClearColor(1f, 1f, 1f, 1f);
+		Color c = Slideshow.CLEAR_COLOR;
+		gl.glClearColor(c.r, c.g, c.b, c.a);
 		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		stage.act(delta);
 	}
 
+	@Override
+	public void onHidden() {
+		root.setVisible(false);
+	}
+	
 	public void draw()
 	{
+		sb.begin();
 		sb.disableBlending();
 		sb.draw(background, 0, 0, screenw, screenh);
 		sb.enableBlending();
-		sb.draw(title, 75, 400, 160, 50);
-		sb.draw(gallery, 10, 90, 290, 290);
-
-		add.draw();
-		view.draw();
+		sb.draw(title, halfscreenw/2f, screenh - 200, halfscreenw, 100);
+		sb.draw(gallery, 20, 120, screenw - 40, screenh - 340);
+		sb.end();
+		stage.draw();
 	}
 
 	@Override
@@ -77,46 +131,7 @@ public class Menu extends BaseScreen implements IAnswerListener {
 						"No", this);
 			}
 		}
-		return false;
-	}
-
-	@Override
-	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-		if(pointer == 0){
-			touch.set(screenX, screenY, 0);
-			camera.unproject(touch);
-
-			add.touch(touch.x, touch.y);
-			view.touch(touch.x, touch.y);
-		}
-		return false;
-	}
-
-	@Override
-	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-		if(pointer == 0){
-			touch.set(screenX, screenY, 0);
-			camera.unproject(touch);
-
-			if(add.untouch(touch.x, touch.y)){
-				game.setScreen(game.cameraState);
-			} else if(view.untouch(touch.x, touch.y)){
-				game.setScreen(game.view);
-			}
-		}
-		return false;
-	}
-
-	@Override
-	public boolean touchDragged(int screenX, int screenY, int pointer) {
-		if(pointer == 0){
-			touch.set(screenX, screenY, 0);
-			camera.unproject(touch);
-
-			add.touch(touch.x, touch.y);
-			view.touch(touch.x, touch.y);
-		}
-		return false;
+		return true;
 	}
 
 	@Override

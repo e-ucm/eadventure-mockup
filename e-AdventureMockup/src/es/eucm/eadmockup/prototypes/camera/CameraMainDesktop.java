@@ -21,7 +21,7 @@ import com.badlogic.gdx.tools.imagepacker.TexturePacker2.Settings;
 
 import es.eucm.eadmockup.prototypes.camera.screens.Menu;
 
-public class CameraMainDesktop implements IDeviceCameraControl, IActionResolver {
+public class CameraMainDesktop implements IDeviceCameraControl, IDeviceVideoControl, IActionResolver {
 
 	private static CameraMainDesktop main;
 	private static Slideshow ss;
@@ -56,24 +56,8 @@ public class CameraMainDesktop implements IDeviceCameraControl, IActionResolver 
 			}
 			
 		}		
-		ss = new Slideshow(main, main);
-		new LwjglApplication(ss, "Prototype", 320, 480, true);
-	}
-
-	@Override
-	public void prepareCamera() {
-		System.out.println("prepareCamera()");		
-	}
-
-	@Override
-	public void startPreview() {
-		System.out.println("startPreview()");			
-	}
-
-	@Override
-	public void stopPreview() {
-		System.out.println("stopView()");	
-		
+		ss = new Slideshow(main, main, main);
+		new LwjglApplication(ss, "Prototype", 1270, 720, true);
 	}
 
 	@Override
@@ -102,7 +86,7 @@ public class CameraMainDesktop implements IDeviceCameraControl, IActionResolver 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		ss.cameraState.onPictureTaken(true);
+		ss.cameraScreen.onPictureTaken(true);
 	}
 
 	@Override
@@ -132,6 +116,44 @@ public class CameraMainDesktop implements IDeviceCameraControl, IActionResolver 
 				} 	
 			}
 		});
+		
+	}
+
+	@Override
+	public void startRecording() {		
+	}
+
+	@Override
+	public void stopRecording() {		
+	}
+
+	@Override
+	public void startPlaying() {		
+	}
+
+	@Override
+	public void stopPlaying() {		
+	}
+
+	@Override
+	public boolean isRecording() {
+		return false;
+	}
+
+	@Override
+	public boolean isPlaying() {
+		return false;
+	}
+
+	@Override
+	public void prepareVideoAsynk() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void stopPreviewAsynk() {
+		// TODO Auto-generated method stub
 		
 	}
 

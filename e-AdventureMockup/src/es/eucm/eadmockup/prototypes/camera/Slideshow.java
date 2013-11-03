@@ -12,13 +12,17 @@ package es.eucm.eadmockup.prototypes.camera;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 
 import es.eucm.eadmockup.prototypes.camera.screens.BaseScreen;
 import es.eucm.eadmockup.prototypes.camera.screens.CameraScreen;
 import es.eucm.eadmockup.prototypes.camera.screens.Loading;
 import es.eucm.eadmockup.prototypes.camera.screens.Menu;
+import es.eucm.eadmockup.prototypes.camera.screens.PlayingScreen;
 import es.eucm.eadmockup.prototypes.camera.screens.TransitionScreen;
+import es.eucm.eadmockup.prototypes.camera.screens.VideoScreen;
 import es.eucm.eadmockup.prototypes.camera.screens.View;
 import static es.eucm.eadmockup.prototypes.camera.screens.BaseScreen.*;
 
@@ -29,23 +33,28 @@ public class Slideshow implements ApplicationListener{
 	private TransitionScreen transitionScreen;
 
 	public BaseScreen showingScreen;
+	
+	public static final Color CLEAR_COLOR = Color.WHITE; 
 
 	/***
 	 * Game States
 	 */
 	private Loading loading;	
 	public Menu menu;
-	public CameraScreen cameraState;
+	public CameraScreen cameraScreen;
 	public View view;
-
+	public VideoScreen video;
+	public PlayingScreen playingscreen;
 
 	private float delta;
 
 	private IDeviceCameraControl cameraControl;
+	private IDeviceVideoControl videoControl;
 	private IActionResolver resolver;
 
-	public Slideshow(IDeviceCameraControl cameraControl, IActionResolver resolver){
+	public Slideshow(IDeviceCameraControl cameraControl, IDeviceVideoControl videoControl, IActionResolver resolver){
 		this.cameraControl = cameraControl;
+		this.videoControl = videoControl;
 		this.resolver = resolver;
 	}
 	
@@ -62,15 +71,20 @@ public class Slideshow implements ApplicationListener{
 		am = new AssetManager();
 		BaseScreen.resolver = this.resolver;
 		settings = Gdx.app.getPreferences("eadmockup_camera");	
-
+		stage = new Stage(screenw, screenh, true);	        	
+		
+		//Screens
 		this.menu = new Menu();
-		this.cameraState = new CameraScreen(cameraControl);
+		this.cameraScreen = new CameraScreen(cameraControl);
+		this.video = new VideoScreen(videoControl);
+		this.playingscreen = new PlayingScreen(videoControl);
 		this.view = new View();
 		this.loading = new Loading();
 		this.loading.create();
 		this.showingScreen = loading;			
 
 		this.transitionScreen = new TransitionScreen();	
+
 	}
 
 	@Override
@@ -79,9 +93,7 @@ public class Slideshow implements ApplicationListener{
 
 		showingScreen.render(delta);	
 
-		sb.begin();
 		showingScreen.draw();	
-		sb.end();
 	}
 
 	@Override
@@ -91,6 +103,8 @@ public class Slideshow implements ApplicationListener{
 		loading.dispose();
 		am.dispose();
 		sb.dispose();
+		view.dispose();
+		stage.dispose();
 		System.exit(0);
 	}
 

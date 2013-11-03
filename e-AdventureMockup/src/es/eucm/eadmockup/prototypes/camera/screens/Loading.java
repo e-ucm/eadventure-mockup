@@ -9,12 +9,16 @@
 package es.eucm.eadmockup.prototypes.camera.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GLCommon;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+
+import es.eucm.eadmockup.prototypes.camera.Slideshow;
 
 public class Loading extends BaseScreen {
 
@@ -23,11 +27,14 @@ public class Loading extends BaseScreen {
 	private float xBar, yBar, wBar, hBar, progress;
 
 	private final String font_src = "data/font/impact38bold.fnt";
+	private final String skin_src = "data/skin/holo-dark-xhdpi.json";
 
 	@Override
 	public void create() {
+		Gdx.input.setInputProcessor(null);
 
 		am.load(font_src, BitmapFont.class);
+		am.load(skin_src, Skin.class);
 
 		this.wBar = halfscreenw * 1.5f;
 		this.hBar = halfscreenw / 7f;
@@ -40,7 +47,9 @@ public class Loading extends BaseScreen {
 		this.loadingProgress = new NinePatch(atlas.findRegion("3"), 4, 4, 4, 4);
 
 		am.load(game.menu.atlas_src, TextureAtlas.class);
-		am.load(game.cameraState.atlas_src, TextureAtlas.class);		
+		am.load(game.cameraScreen.atlas_src, TextureAtlas.class);	
+		am.load(game.video.atlas_src, TextureAtlas.class);		
+		am.load(game.playingscreen.atlas_src, TextureAtlas.class);		
 		
 		this.progress = 0f;
 	}
@@ -48,18 +57,24 @@ public class Loading extends BaseScreen {
 	@Override
 	public void render(float delta) {
 		GLCommon gl = Gdx.gl;
-		gl.glClearColor(1f, 1f, 1f, 1f);
+		Color c = Slideshow.CLEAR_COLOR;
+		gl.glClearColor(c.r, c.g, c.b, c.a);
 		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		
 		if (am.update()){			
 			if (font == null){
 				font = am.get(font_src, BitmapFont.class);					
-				font.scale(1.5f);
+				font.setScale(2f);
 				font.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);		
 			}
+			if(skin == null){
+				skin = am.get(skin_src, Skin.class);
+			}
 			game.menu.create();
-			game.cameraState.create();
+			game.cameraScreen.create();
 			game.view.create();
+			game.video.create();
+			game.playingscreen.create();
 
 			game.setScreen(game.menu);			
 		} else {
@@ -69,8 +84,10 @@ public class Loading extends BaseScreen {
 
 	@Override
 	public void draw() {
+		sb.begin();
 		loadingBar.draw(sb, xBar, yBar, wBar, hBar);
 		loadingProgress.draw(sb, xBar, yBar, wBar*progress, hBar);
+		sb.end();
 	}
 
 	public void dispose(){ 

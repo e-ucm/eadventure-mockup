@@ -10,19 +10,23 @@ package es.eucm.eadmockup.prototypes.camera.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 
 import es.eucm.eadmockup.prototypes.camera.IActionResolver;
 import es.eucm.eadmockup.prototypes.camera.Slideshow;
 
 public class BaseScreen extends InputAdapter {
 
-	public static final float screenw = 320;
+	public static final float screenw = 854;
 	public static final float screenh = 480;
 	public static final float halfscreenw = screenw/2f;
 	public static final float halfscreenh = screenh/2f;
@@ -49,7 +53,7 @@ public class BaseScreen extends InputAdapter {
 	 * on the desktop a Java Preferences file in a ".prefs" directory will be created, and on iOS 
 	 * an NSMutableDictonary will be written to the given file). CAUTION: On the desktop platform, 
 	 * all libgdx applications share the same ".prefs" directory. To avoid collisions use specific 
-	 * names like "com.myname.game1.settings" instead of "settings".
+	 * names like "com.myname.game1.settings" instead of "settings"
      * Changes to a preferences instance will be cached in memory until flush() is invoked.
 	 */
 	public static Preferences settings;
@@ -62,12 +66,18 @@ public class BaseScreen extends InputAdapter {
 	/** 
 	 * A camera with orthographic projection.
 	 */
-	public static OrthographicCamera camera = getCamera();	
+	public static OrthographicCamera camera = getCamera();
+
+	public static Stage stage;
+	
+	public static Skin skin;
 	
 	public static IActionResolver resolver;
 	
 	protected final String atlas_src = atlas_src_string();
 	protected Vector3 touch;
+	protected Table root;
+	protected InputMultiplexer inputMultiplexer;
 	
 	private final String atlas_src_string() {
 		String name = getClass().getSimpleName().toLowerCase();
@@ -96,10 +106,14 @@ public class BaseScreen extends InputAdapter {
 	public void show() { }
 	
 	/**
-	 * Called every time we leave this screen.
+	 * Called half transition time before we leave the screen.
 	 */
 	public void hide() { }	
 
+	/**
+	 * Called every time we leave this screen, just before setting new screen.
+	 */
+	public void onHidden() { }	
 	
 	/**
 	 * Called as part of the activity lifecycle when an activity is going into the background, but has not (yet) been killed.
@@ -140,6 +154,14 @@ public class BaseScreen extends InputAdapter {
 		camera.position.set(screenw/2, screenh / 2, 0);		
 		camera.update();
 		return camera;
+	}
+	
+	protected void setUpRoot(){
+		root = new Table();
+		root.setFillParent(true);
+		root.setVisible(false);
+		stage.addActor(root);
+		inputMultiplexer = new InputMultiplexer(stage, this);
 	}
 	
 }

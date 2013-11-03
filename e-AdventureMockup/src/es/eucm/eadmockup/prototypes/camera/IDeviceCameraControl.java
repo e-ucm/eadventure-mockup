@@ -14,12 +14,6 @@ package es.eucm.eadmockup.prototypes.camera;
 public interface IDeviceCameraControl {
 
         // Synchronous interface
-        void prepareCamera();
-
-        void startPreview();
-
-        void stopPreview();
-
         void takePicture();
 
         // Asynchronous interface - need when called from a non platform thread (GDX OpenGl thread)
@@ -32,5 +26,5 @@ public interface IDeviceCameraControl {
         public boolean isReady();
 
         public void prepareCameraAsync();
-
+        
 }

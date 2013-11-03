@@ -86,7 +86,9 @@ public class CameraScreen extends BaseScreen {
 
 	public void draw()
 	{
+		sb.begin();
 		takePic.draw();
+		sb.end();
 	}
 
 	@Override

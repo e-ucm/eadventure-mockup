@@ -9,8 +9,11 @@
 package es.eucm.eadmockup.prototypes.camera.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GLCommon;
+
+import es.eucm.eadmockup.prototypes.camera.Slideshow;
 
 /**
  * 
@@ -43,7 +46,8 @@ public class TransitionScreen extends BaseScreen{
 	public void render(float delta) 
 	{	
 		GLCommon gl = Gdx.gl;
-		gl.glClearColor(1f, 1f, 1f, 1f);
+		Color c = Slideshow.CLEAR_COLOR;
+		gl.glClearColor(c.r, c.g, c.b, c.a);
 		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		
 		if(this.backTrack) 
@@ -61,6 +65,7 @@ public class TransitionScreen extends BaseScreen{
 			{
 				this.elapsedTime = 0;
 				this.backTrack = true;
+				this.actualScreen.onHidden();
 				this.actualScreen = this.nextScreen;
 				this.actualScreen.show();
 			} else {
