@@ -19,10 +19,14 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 
 import es.eucm.eadmockup.prototypes.camera.Slideshow;
+import es.eucm.eadmockup.prototypes.camera.common.Assets;
+import es.eucm.eadmockup.prototypes.camera.common.FileHandler;
 
 public class Loading extends BaseScreen {
 
-	private NinePatch loadingBar, loadingProgress;
+	private final int SEL=6;
+
+	public static NinePatch loadingBar, loadingProgress, loadingSel;
 	private TextureAtlas atlas;
 	private float xBar, yBar, wBar, hBar, progress;
 
@@ -43,16 +47,23 @@ public class Loading extends BaseScreen {
 
 		this.atlas = new TextureAtlas("data/ninepatch/ninepatch.atlas");
 
-		this.loadingBar = new NinePatch(atlas.findRegion("2"), 4, 4, 4, 4);
-		this.loadingProgress = new NinePatch(atlas.findRegion("3"), 4, 4, 4, 4);
+		loadingSel = new NinePatch(atlas.findRegion("1"), 39, 39, 39, 39);
+		loadingBar = new NinePatch(atlas.findRegion("2"), 4, 4, 4, 4);
+		loadingProgress = new NinePatch(atlas.findRegion("3"), 4, 4, 4, 4);
+
+		loadingSel.setBottomHeight(SEL);
+		loadingSel.setTopHeight(SEL);
+		loadingSel.setLeftWidth(SEL);
+		loadingSel.setRightWidth(SEL);
 
 		am.load(game.menu.atlas_src, TextureAtlas.class);
 		am.load(game.cameraScreen.atlas_src, TextureAtlas.class);	
 		am.load(game.video.atlas_src, TextureAtlas.class);		
-		am.load(game.playingscreen.atlas_src, TextureAtlas.class);		
-		
+		am.load(game.playingScreen.atlas_src, TextureAtlas.class);
+
 		this.progress = 0f;
 	}
+
 
 	@Override
 	public void render(float delta) {
@@ -60,21 +71,26 @@ public class Loading extends BaseScreen {
 		Color c = Slideshow.CLEAR_COLOR;
 		gl.glClearColor(c.r, c.g, c.b, c.a);
 		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-		
+
 		if (am.update()){			
-			if (font == null){
-				font = am.get(font_src, BitmapFont.class);					
-				font.setScale(2f);
-				font.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);		
-			}
-			if(skin == null){
-				skin = am.get(skin_src, Skin.class);
-			}
+
+			font = am.get(font_src, BitmapFont.class);					
+			font.setScale(2f);
+			font.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);	
+			FileHandler.load();
+			Assets.setUp();
+
+			skin = am.get(skin_src, Skin.class);
+
 			game.menu.create();
 			game.cameraScreen.create();
 			game.view.create();
+			game.gallery.create();
+			game.transitionScene.create();
+			game.scenes.create();
+			game.selectView.create();
 			game.video.create();
-			game.playingscreen.create();
+			game.playingScreen.create();
 
 			game.setScreen(game.menu);			
 		} else {

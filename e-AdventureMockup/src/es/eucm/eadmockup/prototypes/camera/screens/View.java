@@ -8,10 +8,12 @@
 
 package es.eucm.eadmockup.prototypes.camera.screens;
 
+import static com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo;
+import static com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.assets.loaders.resolvers.ExternalFileHandleResolver;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GLCommon;
@@ -20,241 +22,264 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Window;
+import com.badlogic.gdx.scenes.scene2d.ui.Slider;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Disposable;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.PostProcessor;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.PostProcessorEffect;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.effects.Bloom;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.effects.CrtMonitor;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.effects.Curvature;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.effects.Vignette;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.effects.Zoomer;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.filters.RadialBlur;
-import es.eucm.eadmockup.prototypes.camera.postprocessing.filters.CrtScreen.RgbMode;
 
 import es.eucm.eadmockup.prototypes.camera.Slideshow;
+import es.eucm.eadmockup.prototypes.camera.common.Assets;
+import es.eucm.eadmockup.prototypes.camera.common.FileHandler;
+import es.eucm.eadmockup.prototypes.camera.postprocessing.PostProcessing;
 
-public class View extends BaseScreen implements Disposable{
+public class View extends BaseScreen{
 
 	private static final float TIMEOUT = 3f;
 	private Array<Sprite> list;
 	private boolean loading;
 	private int cont;
 	private float time;
-	private AssetManager amExternal;
-	private PostProcessor postProcessor;
-	private boolean postProcessing;
-	private Array<PostProcessorEffect> effects;
-	private int effect;
-	private String effectName;
-	private float effectY;
-	private Vignette vi;
-	private SelectBox selectb;
-	private Window window;
+	private AssetManager amExt;
+	private PostProcessing post;
 
 	@Override
 	public void create() {
+		amExt = Assets.getExternalAssetsManager();
 		this.list = new Array<Sprite>();
-		amExternal = new AssetManager(new ExternalFileHandleResolver());
-		postProcessor = new PostProcessor(false, false, false /*Gdx.app.getType() == Application.ApplicationType.Desktop*/);
+		post = new PostProcessing();
 
-		effects = new Array<PostProcessorEffect>();
+		setUpRoot();
 
-		int w = Gdx.graphics.getWidth(), h = Gdx.graphics.getHeight();
-		Bloom bloom = new Bloom(w/4, h/4);
-		CrtMonitor crt = new CrtMonitor(w, h, false, false, RgbMode.ChromaticAberrations);
-		Curvature cu = new Curvature();
-		vi = new Vignette(w, h, false);
-		Zoomer z = new Zoomer(w, h, RadialBlur.Quality.Low);
+		post.setEnabled(false);
 
-		z.setBlurStrength( -0.1f );
-		z.setOrigin( Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2 );
-		cu.setZoom( 1f );
-		vi.setIntensity( 1f );
-		vi.setLutTexture( new Texture( Gdx.files.internal("data/gradient-mapping.png") ) );
 
-		effects.add(bloom);
-		effects.add(crt);
-		effects.add(cu);
-		effects.add(vi);
-		effects.add(z);
+		//BLOOM---
+		final CheckBox cbBloom =new CheckBox(" Bloom", skin);
+		post.bloom.setEnabled(false);
+		cbBloom.setChecked(post.bloom.isEnabled());
+		cbBloom.addListener( new ClickListener() {
+			@Override
+			public void clicked( InputEvent event, float x, float y ) {
+				CheckBox source = (CheckBox)event.getListenerActor();
+				post.bloom.setEnabled( source.isChecked() );
+			}
+		} );
 
-		for(PostProcessorEffect ppe : effects){
-			ppe.setEnabled(false);
-			postProcessor.addEffect(ppe);
-		}
+		//CURVATURE---
+		final CheckBox cbCurvature =new CheckBox("Curvature", skin);
+		cbCurvature.setChecked(post.curvature.isEnabled());
+		cbCurvature.addListener(new ClickListener() {
+			@Override
+			public void clicked( InputEvent event, float x, float y ) {
+				CheckBox source = (CheckBox)event.getListenerActor();
+				post.curvature.setEnabled( source.isChecked() );
 
-		postProcessor.setClearColor(Slideshow.CLEAR_COLOR);
+			}
+		} );
 
-		// UI API        
-		
+		//CTR---
+		final CheckBox cbCrt =new CheckBox("Old CRT emulation", skin);
+		cbCrt.setChecked(post.crt.isEnabled());
+		cbCrt.addListener(new ClickListener() {
+			@Override
+			public void clicked( InputEvent event, float x, float y ) {
+				CheckBox source = (CheckBox)event.getListenerActor();
+				post.crt.setEnabled( source.isChecked() );
+			}
+		} );;
 
-		selectb = new SelectBox(new String[] { "Cross processing ", "Sunset ", "Mars",
-				"Vivid ", "Greenland ", "Cloudy ", "Muddy ", "HOLA" }, skin);
-		
-		selectb.addListener(new ChangeListener() {
+		//--VIGNETTE
+
+		final Slider slVignetteI =  new Slider( 0, 1f, 0.01f,  false, skin);
+		slVignetteI.setValue(post.vignette.getIntensity());
+		slVignetteI.addListener(new ChangeListener() {
 			@Override
 			public void changed( ChangeEvent event, Actor actor ) {
-				if( vi.isGradientMappingEnabled() ) {
+				Slider source = (Slider)event.getListenerActor();
+				post.vignette.setIntensity( source.getValue() );
+			}
+		} );
+
+		final SelectBox sbGradientMap = new SelectBox(new String[] { "Cross processing ", "Sunset ", "Mars",
+				"Vivid ", "Greenland ", "Cloudy ", "Muddy " }, skin);
+
+		sbGradientMap.addListener( new ChangeListener() {
+			@Override
+			public void changed( ChangeEvent event, Actor actor ) {
+				if( post.vignette.isGradientMappingEnabled() ) {
 					SelectBox source = (SelectBox)event.getListenerActor();
 					switch( source.getSelectionIndex() ) {
 					case 0:
-						vi.setLutIndexVal( 0, 16 );
+						post.vignette.setLutIndexVal( 0, 16 );
 						break;
 					case 1:
-						vi.setLutIndexVal( 0, 5 );
+						post.vignette.setLutIndexVal( 0, 5 );
 						break;
 					case 2:
-						vi.setLutIndexVal( 0, 7 );
+						post.vignette.setLutIndexVal( 0, 7 );
 						break;
 					case 3:
-						vi.setLutIndexVal( 0, 6 );
+						post.vignette.setLutIndexVal( 0, 6 );
 						break;
 					case 4:
-						vi.setLutIndexVal( 0, 8 );
+						post.vignette.setLutIndexVal( 0, 8 );
 						break;
 					case 5:
-						vi.setLutIndexVal( 0, 3 );
+						post.vignette.setLutIndexVal( 0, 3 );
 						break;
 					case 6:
-						vi.setLutIndexVal( 0, 0 );
+						post.vignette.setLutIndexVal( 0, 0 );
 						break;
 					}
 				}
 			}
 		} );
-		selectb.setColor(Color.CYAN);
-		selectb.setVisible(false);
 
-		setUpRoot();
-		
-		root.add(selectb).expand().top().right().pad(10f);
+		final Table tVignette = new Table();
+		tVignette.setVisible(false);
 
-		this.effectY = font.getLineHeight() + font.getDescent();
-		
-		////
-		TextButton btn0 = new TextButton("0", skin);
-		btn0.addListener(new ClickListener(){
-			@Override
-			public void clicked( InputEvent event, float x, float y ) {
-				vi.setLutIntensity(1);
-			}
-		});
-		
-		TextButton btn1 = new TextButton("1", skin);
-		btn1.addListener(new ClickListener(){
-			@Override
-			public void clicked( InputEvent event, float x, float y ) {
-				vi.setLutIntensity(5);
-			}
-		});
-		
-		TextButton btn2 = new TextButton("2", skin);
-		btn2.addListener(new ClickListener(){
-			@Override
-			public void clicked( InputEvent event, float x, float y ) {
-				vi.setLutIntensity(10);
-			}
-		});
-		
-		TextButton btn3 = new TextButton("3", skin);
-		btn3.addListener(new ClickListener(){
-			@Override
-			public void clicked( InputEvent event, float x, float y ) {
-				vi.setLutIntensity(15);
-			}
-		});
-		
-		TextButton btn4 = new TextButton("4", skin);
-		btn4.addListener(new ClickListener(){
-			@Override
-			public void clicked( InputEvent event, float x, float y ) {
-				vi.setLutIntensity(20);
-			}
-		});
-		
-		///
-		
-		window = new Window("EFECTOS", skin);
-		window.row();
-		window.add("Efectos").center();
-		window.row();
+		tVignette.top();
+		tVignette.add(slVignetteI);
+		tVignette.row();
+		tVignette.add(sbGradientMap);	
 
-		//window.defaults().spaceBottom(1).spaceLeft(1).size(40, 20);
-		//window.row().fill().expandX();
-		
-		window.add("Intensidades").center();
-		window.row();
-		window.add(btn0);
-		window.add(btn1);
-		window.add(btn2);
-		window.add(btn3);
-		window.add(btn4);
-		
-		/*
-		window.row();
-		window.add(new TextButton("6", skin));
-		window.add(new TextButton("7", skin)).minWidth(100).fillX().colspan(3);
-		window.row();
-		window.add(new TextButton("8", skin));
-		window.add(new TextButton("9", skin)).minWidth(100).expandX().fillX().colspan(3);
-		window.row();
-		window.add(new TextButton("10", skin)).fill().expand().colspan(4).maxHeight(200);
-		window.row();
-		window.add(new TextButton("11", skin)).colspan(2);
-		window.add(new TextButton("12", skin)).minWidth(100).expandX().fillX().colspan(2);
-		window.row();
-		*/
-		
-		window.pack();
-		
-		window.addListener(new InputListener(){
-			
+		final Table tVig2 = new Table();
+		tVig2.setVisible(false);
+
+		final CheckBox cbGradientMapping =new CheckBox("Perform gradient mapping", skin);			
+		tVig2.add(cbGradientMapping);
+
+		final Texture grt = new Texture(Gdx.files.internal("data/gradient-mapping.png"));
+		post.vignette.setEnabled(false);
+		cbGradientMapping.setChecked(post.vignette.isGradientMappingEnabled());
+		cbGradientMapping.addListener(new ClickListener() {
 			@Override
-			public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                Gdx.app.log("Example", "touch started at (" + x + ", " + y + ")");
-                return true;
+			public void clicked( InputEvent event, float x, float y ) {
+				CheckBox source = (CheckBox)event.getListenerActor();
+				if( source.isChecked() ) {
+					post.vignette.setLutTexture(grt);
+					sbGradientMap.fire( new ChangeListener.ChangeEvent() );
+					tVignette.setVisible(true);
+					//tVig2.setVisible(true);
+				} else {
+					post.vignette.setLutTexture( null );
+					post.vignette.setLutIndexVal( 0, -1 );
+					tVignette.setVisible(false);
+					//tVig2.setVisible(false);
+				}
 			}
-			
+		} );
+
+
+
+		final CheckBox cbVignette =new CheckBox("Vignette", skin);
+		cbVignette.setChecked(post.vignette.isEnabled());
+		cbVignette.addListener(new ClickListener(){
 			@Override
-			public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
-                Gdx.app.log("Example", "touch done at (" + x + ", " + y + ")");
+			public void clicked( InputEvent event, float x, float y ) {
+				CheckBox source = (CheckBox)event.getListenerActor();
+				boolean b =  source.isChecked();
+				post.vignette.setEnabled(b);
+				tVig2.setVisible(b);
+				if(post.vignette.isGradientMappingEnabled()){
+					tVignette.setVisible(b);
+				}
+			}
+		} );
+
+		//ZOOMER---
+
+		final CheckBox cbZoomer =new CheckBox("Zoomer", skin);
+		cbZoomer.addListener(new ClickListener(){
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				CheckBox source = (CheckBox)event.getListenerActor();
+				post.zoomer.setEnabled( source.isChecked() );
+				if( post.isEnabled() ) {
+					if( post.zoomer.isEnabled() ) {
+						post.zoomAmount = 0;
+						post.zoomFactor = 0;
+					}
+				}
 			}
 		});
-		
-		
-		root.addActor(window);
+
+		//Chackbox table
+		Table t = new Table();
+		t.setBackground(new NinePatchDrawable(Loading.loadingBar));
+
+		t.add(cbBloom).left();
+		t.row();
+		t.add(cbCurvature).left();
+		t.row();
+		t.add(cbCrt).left();
+		t.row();
+		t.add(cbVignette).left();
+		t.row();
+		t.add(cbZoomer).left();
+		t.row();
+		final ScrollPane spt = new ScrollPane(t, skin);
+		spt.setScrollingDisabled(true, false);
+
+
+		spt.setVisible(false);
+
+		//ENABLE POST
+		final CheckBox cbPost =new CheckBox("Post-processing", skin);
+		cbPost.setChecked( post.isEnabled());
+		cbPost.addListener( new ClickListener() {
+			@Override
+			public void clicked( InputEvent event, float x, float y ) {
+				CheckBox source = (CheckBox)event.getListenerActor();
+				boolean b = source.isChecked() ;
+				post.setEnabled( b );
+				spt.setVisible(b);
+				if(!b || (b && post.vignette.isEnabled())){
+					tVignette.setVisible(b);
+					tVig2.setVisible(b);
+				}
+			}
+		} );
+
+
+		//Root table;...
+
+		root.pad(5f);
+		root.add(tVig2).expand().left().bottom();
+		root.add(cbPost);
+		root.row();
+		root.add(tVignette).expand().top();
+		root.add(spt).expand().right();
 	}
 
 	@Override
 	public void show() {
 		Gdx.input.setInputProcessor(inputMultiplexer);
-		for(int i = list.size+1; i <= CameraScreen.ID; ++i){
-			amExternal.load("prueba/Picture_"+i+".jpg", Texture.class);
+		int max = FileHandler.getResourceID();
+		for(int i = list.size+1; i <= max; ++i){
+			amExt.load("Slideshow/HalfSized/HalfSized"+i+".jpg", Texture.class);
 		}
 		this.loading = true;
+		root.setVisible( true );
 		this.cont = 0;
 		this.time = 0f;
-		this.effect = -1;
-		this.effectName = "Ninguno";
-
-		root.setVisible(true);
+		stage.addAction(sequence(moveTo(stage.getWidth(), 0),moveTo(0, 0, .25f)));
 	}
-	
+
 	@Override
 	public void hide() {
-		//animaciones de salida
+
 	}
-	
+
 	@Override
 	public void onHidden() {
-		root.setVisible(false);
+		root.setVisible( false );
+
 	}
 
 	@Override
@@ -264,9 +289,10 @@ public class View extends BaseScreen implements Disposable{
 		gl.glClearColor(c.r, c.g, c.b, c.a);
 		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		if(loading){
-			if(amExternal.update()){
-				for(int i = list.size+1; i <= CameraScreen.ID; ++i){
-					Texture tr = amExternal.get("prueba/Picture_"+i+".jpg", Texture.class);
+			if(amExt.update()){
+				int max = FileHandler.getResourceID();
+				for(int i = list.size+1; i <= max; ++i){
+					Texture tr = amExt.get("Slideshow/HalfSized/HalfSized"+i+".jpg", Texture.class);
 					Sprite s = new Sprite(tr);
 					s.setBounds(0, 0, screenw, screenh);
 					list.add(s);
@@ -281,6 +307,8 @@ public class View extends BaseScreen implements Disposable{
 			}
 		}
 		stage.act(delta);
+		//Table.drawDebug(stage);
+		post.update(delta);
 	}
 
 	private void incrementCont() {
@@ -292,35 +320,37 @@ public class View extends BaseScreen implements Disposable{
 
 	public void draw()
 	{
+
+		boolean willPostProcess = post.isReady();
+		if(willPostProcess && (post.postProcessor.getEnabledEffectsCount() == 1)) {
+			post.enableBlending();
+		} else {
+			post.disableBlending();
+		}
+
+
 		if(loading) {	
 			sb.begin();
-			font.draw(sb, String.valueOf(amExternal.getProgress()*100), 0, screenh);
+			font.draw(sb, String.valueOf(amExt.getProgress()*100), 0, screenh);
 			sb.end();
 		} else {
-			if(postProcessing){
-				postProcessor.capture();
-			}
+			post.begin();
 			sb.begin();
 			if(list.size > 0){
 				list.get(cont).draw(sb);
 			} else {
-				sb.draw(Menu.background,  0, 0, screenw, screenh);
-				sb.draw(Menu.gallery,  10, 90, 290, 290);
+				sb.draw(Menu.title,  10, 90, 290, 290);
 			}
 			font.draw(sb, String.valueOf(Gdx.graphics.getFramesPerSecond()), 10, screenh);
-			font.draw(sb, effectName, 10, effectY);
 			sb.end();
-
-			if(postProcessing){
-				postProcessor.render();
-			}
-		}		
+			post.end();
+		}	
 		stage.draw();
 	}
 
 	@Override
 	public void resume() {
-		postProcessor.rebind();
+		post.rebind();
 	}
 
 	@Override
@@ -336,35 +366,18 @@ public class View extends BaseScreen implements Disposable{
 		if(pointer == 0){
 			incrementCont();
 			time = 0f;
-			postProcessing = true;
-			PostProcessorEffect ppe = null;
-			if(effect != -1){
-				ppe = effects.get(effect);
-				ppe.setEnabled(false);
-			}
-			int nextEff = MathUtils.random(0, effects.size-1);
-			if(nextEff == effect){
-				effect = (nextEff+1)%effects.size;
-			} else {
-				effect = nextEff;
-			}
-
-			ppe = effects.get(effect);
-			ppe.setEnabled(true);
-			effectName = effect + " " + ppe.getClass().getSimpleName();
-
-			if(effect == 3){
-				selectb.setVisible(true);
-			} else {
-				selectb.setVisible(false);
-			}
-
 		}
 		return true;
 	}
 
-	public void dispose() {
-		postProcessor.dispose();
-		amExternal.dispose();
+	public void dispose(){
+		post.dispose();
+	}
+
+	@Override
+	public boolean scrolled(int amount) {
+		post.zoomAmount += amount * -1;
+		post.zoomAmount = MathUtils.clamp( post.zoomAmount, 0, 15 );
+		return true;
 	}
 }

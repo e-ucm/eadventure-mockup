@@ -13,7 +13,6 @@
 			<attribute name="javadoc_location" value="file:/C:/Users/Windows7/Desktop/libgdx-0.9.8/docs/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/libgdx-contribs-postprocessing"/>
-	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/libgdx-contribs-utils"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

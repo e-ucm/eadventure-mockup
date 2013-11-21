@@ -8,9 +8,10 @@
 
 package es.eucm.eadmockup.prototypes.camera;
 
-import es.eucm.eadmockup.prototypes.camera.screens.Menu;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import es.eucm.eadmockup.prototypes.camera.facade.IActionResolver;
+import es.eucm.eadmockup.prototypes.camera.facade.IAnswerListener;
 
 public class AndroidResolver implements IActionResolver {
 
@@ -31,13 +32,13 @@ public class AndroidResolver implements IActionResolver {
 				.setMessage(alertBoxQuestion)
 				.setPositiveButton(answerA, new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int whichButton) {
-						ql.onReceiveAnswer(questionNumber, Menu.ANSWER_A);
+						ql.onReceiveAnswer(questionNumber, IAnswerListener.ANSWER_A);
 						dialog.cancel();
 					}
 				})
 				.setNegativeButton(answerB, new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int whichButton) {
-						ql.onReceiveAnswer(questionNumber, Menu.ANSWER_B);
+						ql.onReceiveAnswer(questionNumber, IAnswerListener.ANSWER_B);
 						dialog.cancel();
 					}
 				})

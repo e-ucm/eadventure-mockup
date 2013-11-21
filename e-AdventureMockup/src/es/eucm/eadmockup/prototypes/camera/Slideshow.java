@@ -16,25 +16,32 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 
+import es.eucm.eadmockup.prototypes.camera.common.Assets;
+import es.eucm.eadmockup.prototypes.camera.common.FileHandler;
+import es.eucm.eadmockup.prototypes.camera.facade.IActionResolver;
+import es.eucm.eadmockup.prototypes.camera.facade.IDevicePictureControl;
+import es.eucm.eadmockup.prototypes.camera.facade.IDeviceVideoControl;
 import es.eucm.eadmockup.prototypes.camera.screens.BaseScreen;
 import es.eucm.eadmockup.prototypes.camera.screens.CameraScreen;
+import es.eucm.eadmockup.prototypes.camera.screens.Gallery;
 import es.eucm.eadmockup.prototypes.camera.screens.Loading;
 import es.eucm.eadmockup.prototypes.camera.screens.Menu;
 import es.eucm.eadmockup.prototypes.camera.screens.PlayingScreen;
+import es.eucm.eadmockup.prototypes.camera.screens.Scenes;
+import es.eucm.eadmockup.prototypes.camera.screens.SelectView;
 import es.eucm.eadmockup.prototypes.camera.screens.TransitionScreen;
+import es.eucm.eadmockup.prototypes.camera.screens.TransitionScene;
 import es.eucm.eadmockup.prototypes.camera.screens.VideoScreen;
 import es.eucm.eadmockup.prototypes.camera.screens.View;
 import static es.eucm.eadmockup.prototypes.camera.screens.BaseScreen.*;
 
 public class Slideshow implements ApplicationListener{
 
-	public static String filename;
-
 	private TransitionScreen transitionScreen;
 
 	public BaseScreen showingScreen;
 	
-	public static final Color CLEAR_COLOR = Color.WHITE; 
+	public static final Color CLEAR_COLOR = Color.BLACK; 
 
 	/***
 	 * Game States
@@ -43,19 +50,23 @@ public class Slideshow implements ApplicationListener{
 	public Menu menu;
 	public CameraScreen cameraScreen;
 	public View view;
+	public Gallery gallery;
+	public SelectView selectView;
 	public VideoScreen video;
-	public PlayingScreen playingscreen;
+	public PlayingScreen playingScreen;
+	public Scenes scenes;
+	public TransitionScene transitionScene;
 
 	private float delta;
 
-	private IDeviceCameraControl cameraControl;
+	private IDevicePictureControl pictureControl;
 	private IDeviceVideoControl videoControl;
-	private IActionResolver resolver;
+	private IActionResolver actionResolver;
 
-	public Slideshow(IDeviceCameraControl cameraControl, IDeviceVideoControl videoControl, IActionResolver resolver){
-		this.cameraControl = cameraControl;
+	public Slideshow(IDevicePictureControl cameraControl, IDeviceVideoControl videoControl, IActionResolver resolver){
+		this.pictureControl = cameraControl;
 		this.videoControl = videoControl;
-		this.resolver = resolver;
+		this.actionResolver = resolver;
 	}
 	
 	@Override
@@ -63,28 +74,30 @@ public class Slideshow implements ApplicationListener{
 		
 		Gdx.input.setCatchBackKey(true);
 
-		// Base screen
+		// BaseScreen's statics initialization
 		game = this;
 		sb = new SpriteBatch(35);	
 		sb.setProjectionMatrix(camera.combined);
 
 		am = new AssetManager();
-		BaseScreen.resolver = this.resolver;
-		settings = Gdx.app.getPreferences("eadmockup_camera");	
+		resolver = this.actionResolver;
 		stage = new Stage(screenw, screenh, true);	        	
 		
-		//Screens
+		//Application's screens
 		this.menu = new Menu();
-		this.cameraScreen = new CameraScreen(cameraControl);
+		this.cameraScreen = new CameraScreen(pictureControl);
 		this.video = new VideoScreen(videoControl);
-		this.playingscreen = new PlayingScreen(videoControl);
+		this.playingScreen = new PlayingScreen(videoControl);
 		this.view = new View();
+		this.gallery = new Gallery();
+		this.scenes = new Scenes();
+		this.transitionScene = new TransitionScene();
+		this.selectView = new SelectView(videoControl);
 		this.loading = new Loading();
 		this.loading.create();
 		this.showingScreen = loading;			
 
 		this.transitionScreen = new TransitionScreen();	
-
 	}
 
 	@Override
@@ -98,19 +111,21 @@ public class Slideshow implements ApplicationListener{
 
 	@Override
 	public void dispose() {
-		settings.flush();
+		FileHandler.save();
 		font.dispose();
 		loading.dispose();
+		view.dispose();
 		am.dispose();
 		sb.dispose();
-		view.dispose();
-		stage.dispose();
+		Assets.dispose();
+		BaseScreen.disposeStatics();
 		System.exit(0);
 	}
 
 	@Override
 	public void pause() {
 		this.showingScreen.pause();
+		FileHandler.save();
 	}
 
 	@Override

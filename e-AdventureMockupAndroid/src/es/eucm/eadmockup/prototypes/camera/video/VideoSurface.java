@@ -9,6 +9,8 @@
 package es.eucm.eadmockup.prototypes.camera.video;
 
 
+import java.util.List;
+
 import android.content.Context;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -20,7 +22,7 @@ public class VideoSurface extends SurfaceView {
 	@SuppressWarnings("deprecation")
 	public VideoSurface( Context context ) {
 		super( context );
-		this.callback = new VideoSurfaceCallback();
+		this.callback = new VideoSurfaceCallback(this);
 		
 		// We're implementing the Callback interface and want to get notified		
 		// about certain surface events.
@@ -43,28 +45,10 @@ public class VideoSurface extends SurfaceView {
 	}
 
 	public boolean isRecording() {
-		// TODO Auto-generated method stub
 		return callback.isRecording();
 	}
-	
-	public void startPlaying() {
-		callback.startPlaying();
-		
-	}
 
-	public void stopPlaying() {
-		callback.stopPlaying();
-		
+	public List<String> getQualities() {
+		return callback.setUpSupportedProfiles();
 	}
-	
-	public boolean isPlaying()
-	{
-		return callback.isPlaying();
-	}
-
-	public void stop() {
-		// TODO Auto-generated method stub
-		callback.stopRecOrPlaying();
-	}
-
 }

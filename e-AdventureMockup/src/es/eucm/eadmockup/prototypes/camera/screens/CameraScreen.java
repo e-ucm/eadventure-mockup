@@ -8,6 +8,9 @@
 
 package es.eucm.eadmockup.prototypes.camera.screens;
 
+import static com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo;
+import static com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.GL20;
@@ -15,27 +18,23 @@ import com.badlogic.gdx.graphics.GLCommon;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector3;
 
-import es.eucm.eadmockup.prototypes.camera.IDeviceCameraControl;
 import es.eucm.eadmockup.prototypes.camera.buttons.Button;
+import es.eucm.eadmockup.prototypes.camera.facade.IDevicePictureControl;
 
 
 public class CameraScreen extends BaseScreen {
-
-	public static int ID;
-	private static final String ID_key = "ID_key";
 
 	private static final float HALF_SECOND = .5f;
 
 	private static Button takePic;
 
-	private IDeviceCameraControl cameraControl;
+	private IDevicePictureControl cameraControl;
 
 	private boolean started;
 
 	private float triggerTime;
 
-	public CameraScreen(IDeviceCameraControl cameraControl){
-		ID = settings.getInteger(ID_key, 0);
+	public CameraScreen(IDevicePictureControl cameraControl){
 		this.cameraControl = cameraControl;
 	}
 
@@ -56,18 +55,19 @@ public class CameraScreen extends BaseScreen {
 		cameraControl.prepareCameraAsync();
 		started = true;
 		triggerTime = -1f;
+		stage.addAction(sequence(moveTo(stage.getWidth(), 0),moveTo(0, 0, .25f)));
 	}
 
 	@Override
 	public void render(float delta) {
 		GLCommon gl = Gdx.gl20;
 		gl.glClearColor(0f, 0f, 0f, 0f);
-		gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-		gl.glEnable(GL20.GL_DEPTH_TEST);
+		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);// | GL20.GL_DEPTH_BUFFER_BIT);
+		/*gl.glEnable(GL20.GL_DEPTH_TEST);
 		gl.glEnable(GL20.GL_TEXTURE);                     
 		gl.glEnable(GL20.GL_TEXTURE_2D);     
 		gl.glDepthFunc(GL20.GL_LEQUAL);
-		gl.glClearDepthf(1.0F);
+		gl.glClearDepthf(1.0F);*/
 
 		if(started && cameraControl.isReady()){
 			started = false;
@@ -99,7 +99,6 @@ public class CameraScreen extends BaseScreen {
 	@Override
 	public void pause() {
 		cameraControl.stopPreviewAsync();
-		settings.flush();
 	}
 
 	@Override
@@ -162,7 +161,6 @@ public class CameraScreen extends BaseScreen {
 	 * @param succeed
 	 */
 	public void onPictureTaken(boolean succeed) {
-		settings.putInteger(ID_key, ID);
 		//game.setScreen(game.menu);
 		cameraControl.stopPreviewAsync();
 		cameraControl.prepareCameraAsync();

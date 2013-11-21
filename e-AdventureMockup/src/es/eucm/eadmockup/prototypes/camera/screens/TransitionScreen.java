@@ -26,13 +26,14 @@ public class TransitionScreen extends BaseScreen{
 
 	private float elapsedTime;
 	private boolean backTrack;
-	
-	private final float HALF_TRANSITION_TIME = .25f;
+
+	private final float HALF_TRANSITION_TIME = 0f;
 
 	public TransitionScreen() {		
+		// In order for this to work, TransitionScreen must be created after the showingScreen is initialized.
 		actualScreen = game.showingScreen;
 	}
-	
+
 	public BaseScreen initializer(BaseScreen nextScreen)
 	{
 		this.actualScreen.hide();		
@@ -49,7 +50,7 @@ public class TransitionScreen extends BaseScreen{
 		Color c = Slideshow.CLEAR_COLOR;
 		gl.glClearColor(c.r, c.g, c.b, c.a);
 		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-		
+
 		if(this.backTrack) 
 		{	
 			if(this.elapsedTime >= HALF_TRANSITION_TIME)
@@ -72,8 +73,9 @@ public class TransitionScreen extends BaseScreen{
 				this.elapsedTime = this.elapsedTime - delta;
 			}
 		}
+		stage.act(delta);
 	}	
-	
+
 	@Override
 	public void draw() {
 		this.actualScreen.draw(); 

@@ -9,307 +9,306 @@
 package es.eucm.eadmockup.prototypes.camera.video;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 
-import android.annotation.SuppressLint;
+import com.badlogic.gdx.Gdx;
+
+import android.graphics.Bitmap;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
 import android.media.CamcorderProfile;
-import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.media.ThumbnailUtils;
 import android.os.Environment;
+import android.provider.MediaStore.Video.Thumbnails;
 import android.util.Log;
 import android.view.SurfaceHolder;
+import es.eucm.eadmockup.prototypes.camera.common.FileHandler;
+import es.eucm.eadmockup.prototypes.camera.screens.VideoScreen;
 
 public class VideoSurfaceCallback implements SurfaceHolder.Callback  {
 
 	public static final String LOGTAG = "System.out";
+	private final String P480 = "480p";
+	private final String P720 = "720p";
+	private final String P1080 = "1080p";
 
 	private MediaRecorder recorder;
-	private MediaPlayer player;
 	private Camera camera;	
 
 	boolean recording = false;
-	private boolean playing = false;
-	boolean usecamera = true;
-	boolean previewRunning = false;
-	private Size videoSize;
+	private CamcorderProfile mRecorderProfile;
 
 	private SurfaceHolder holder;
 
-	private CamcorderProfile camcorderProfile;
+	private final String rootPath;
+	private String auxVideoPath;
 
-	private String path= Environment.getExternalStorageDirectory() + "videocapture74063146.3gp";//<<<<<<<>>>>>>//
+	private List<String> qual;
+	private final VideoSurface videoSurface;
 
-	private boolean wasPreviewRunning;
 
-	
-
-	public VideoSurfaceCallback(){
-		Log.d(LOGTAG, "creating videosurfaceCallBack");
-		//fileName = Environment.getExternalStorageDirectory() + "/test.mp4";
+	public VideoSurfaceCallback(VideoSurface videoSurface){
+		this.videoSurface = videoSurface;
+		rootPath = Environment.getExternalStorageDirectory() + "/Slideshow/Videos/Video";
+		setUpSupportedProfiles();
 	}
 
-	private void prepareRecorder() {
-		Log.d(LOGTAG, "preparing recorder");
-		if(recorder == null){
-			recorder = new MediaRecorder();
+	public List<String> setUpSupportedProfiles(){
+		qual = new ArrayList<String>();
+		if(CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_480P)){
+			qual.add(P480);
 		}
-		recorder.setPreviewDisplay(holder.getSurface());
-		
-		if(player == null){
-			player = new MediaPlayer();
-			player.setDisplay(holder);
+		if(CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_720P)){
+			qual.add(P720);
 		}
-
-		if (usecamera) {
-			camera.unlock();
-			recorder.setCamera(camera);
+		if(CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_1080P)){
+			qual.add(P1080);
 		}
+		return qual;
+	}
 
-		recorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT);
-		recorder.setVideoSource(MediaRecorder.VideoSource.DEFAULT);
-		
-		/*recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-		recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-		recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-		recorder.setVideoSize(videoSize.width, videoSize.height);
-		recorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT); 
-		recorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);*/
-		
-		//recorder.setOutputFile(fileName);
+	private CamcorderProfile getProfile(){
+		CamcorderProfile prof = null;
+		if(VideoScreen.QUALITY.equals(P480)){
+			prof = CamcorderProfile.get(CamcorderProfile.QUALITY_480P);
+		} else if(VideoScreen.QUALITY.equals(P720)){
+			prof = CamcorderProfile.get(CamcorderProfile.QUALITY_720P);
+		} else if(VideoScreen.QUALITY.equals(P1080)){
+			prof = CamcorderProfile.get(CamcorderProfile.QUALITY_1080P);
+		}  
 
-		recorder.setProfile(camcorderProfile);
-
-		// This is all very sloppy
-		if (camcorderProfile.fileFormat == MediaRecorder.OutputFormat.THREE_GPP) {
-			try {
-				File newFile = File.createTempFile("videocapture", ".3gp", Environment.getExternalStorageDirectory());
-				path = newFile.getAbsolutePath();
-				recorder.setOutputFile(newFile.getAbsolutePath());
-			} catch (IOException e) {
-				Log.v(LOGTAG,"Couldn't create file");
-				e.printStackTrace();
-			}
-		} else if (camcorderProfile.fileFormat == MediaRecorder.OutputFormat.MPEG_4) {
-			try {
-				File newFile = File.createTempFile("videocapture", ".mp4", Environment.getExternalStorageDirectory());
-				path = newFile.getAbsolutePath();
-				recorder.setOutputFile(newFile.getAbsolutePath());
-			} catch (IOException e) {
-				Log.v(LOGTAG,"Couldn't create file");
-				e.printStackTrace();
-			}
-		} else {
-			try {
-				File newFile = File.createTempFile("videocapture", ".mp4", Environment.getExternalStorageDirectory());
-				path = newFile.getAbsolutePath();
-				recorder.setOutputFile(newFile.getAbsolutePath());
-			} catch (IOException e) {
-				Log.v(LOGTAG,"Couldn't create file");
-				e.printStackTrace();
-			}
-
+		if(prof == null){
+			prof = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW);			
 		}
-		//recorder.setMaxDuration(50000); // 50 seconds
-		//recorder.setMaxFileSize(5000000); // Approximately 5 megabytes
-
-		try {
-			recorder.prepare();
-		} catch (IllegalStateException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		return prof;
 	}
 
 	public void surfaceCreated(SurfaceHolder holder) {
-		this.holder = holder;
+		mRecorderProfile = getProfile();
+
+		if(this.holder == null){
+			this.holder = holder;
+		}
+
+		if(recorder == null){
+			this.recorder = new MediaRecorder();
+		}
+
+		if(camera == null){
+			camera = getCameraInstance();
+		}
+
+		// The Surface has been created, now tell the camera where to draw the preview.
+		try {
+
+			boolean supported = false;			
+			Camera.Parameters parameters = camera.getParameters();
+			int h = mRecorderProfile.videoFrameHeight;
+			int w = mRecorderProfile.videoFrameWidth;
+			List<Size> suppPrevs = parameters.getSupportedPreviewSizes();
+			for(Size s : suppPrevs){
+				if(s.width == w && s.height == h){
+					supported = true;
+					break;
+				}
+			}			
+			if(supported){
+				parameters.setPreviewSize(w, h);
+				camera.setParameters(parameters);
+				System.out.println("setting: " + w + "x" + h);
+			} else {
+				
+				float ratio = (float)w/(float)h;
+				for(Size s : suppPrevs){
+					float ratioS = (float)s.width/(float)s.height;
+					if(ratioS == ratio){
+						System.out.println("Another ratio found: " + s.width + ", " +  s.height);
+						parameters.setPreviewSize(s.width, s.height);
+						camera.setParameters(parameters);
+						break;
+					}
+				}				
+			}
+
+			setUpPreviewAspectRatio(w, h);
+			camera.setPreviewDisplay(holder);
+			camera.startPreview();
+		} catch (IOException e) {
+		}
 		Log.v(LOGTAG, "surfaceCreated");
-
-		if (usecamera) {
-			if(camera == null){
-				camera = Camera.open();
-			}
-
-			try {
-				camera.setPreviewDisplay(holder);
-				camera.startPreview();
-				previewRunning = true;
-			}
-			catch (IOException e) {
-				Log.e(LOGTAG,e.getMessage());
-				e.printStackTrace();
-			}	
-		}		
-
 	}
 
+	private void setUpPreviewAspectRatio(int w, int h){
 
-	@SuppressLint("NewApi")
+		//Get the SurfaceView layout parameters
+		android.view.ViewGroup.LayoutParams lp = videoSurface.getLayoutParams();
+
+		float viewportWidth = w;
+		float viewportHeight = h;	
+		float viewPortAspect = viewportWidth / viewportHeight;	
+		float physicalWidth = Gdx.graphics.getWidth();
+		float physicalHeight = Gdx.graphics.getHeight();
+		float physicalAspect = physicalWidth / physicalHeight;	
+
+		System.out.println("----inicial---");
+		System.out.println("physicalWidth: " + physicalWidth + ", physicalHeight: " + physicalHeight);
+		System.out.println("viewportWidth: " + viewportWidth + ", viewportHeight: " + viewportHeight);
+
+		if ( physicalAspect < viewPortAspect) {
+			viewportHeight = viewportHeight * (physicalWidth/viewportWidth);
+			viewportWidth = physicalWidth;
+		} else {
+			viewportWidth = viewportWidth * (physicalHeight/viewportHeight);
+			viewportHeight = physicalHeight;
+		}
+		System.out.println("----final---");
+		System.out.println("viewportWidth: " + viewportWidth + ", viewportHeight: " + viewportHeight);
+
+		lp.width = (int) viewportWidth;
+		lp.height = (int) viewportHeight;
+
+		videoSurface.setLayoutParams(lp);
+	}
+
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-		Log.v(LOGTAG, "surfaceChanged");
+		Log.v(LOGTAG, "surfaceChanged, width: " + width + ", height: " + height);
+		// If your preview can change or rotate, take care of those events here.
+		// Make sure to stop the preview before resizing or reformatting it.
 
-		if (!recording && usecamera) {
-			if (previewRunning){
-				camera.stopPreview();
-				previewRunning = false;
-			}
-
-			try {
-				Camera.Parameters p = camera.getParameters();
-
-				List<Size> supportedPrevSizes = p.getSupportedPreviewSizes();
-				Size prevSize = supportedPrevSizes.get(0);
-				for(Size s : supportedPrevSizes){
-					int pix = s.width*s.height;
-					if(pix < 1000000 && pix > 500000){
-						prevSize = s;
-					}
-				}
-				
-				/*List<Size> supportedVideoSizes = p.getSupportedVideoSizes();
-				videoSize = supportedVideoSizes.get(0);
-				for(Size s : supportedVideoSizes){
-					int pix = s.width*s.height;
-					if(pix < 1000000 && pix > 500000){
-						videoSize = s;
-					}
-				}*/
-				camcorderProfile = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW);
-				if(videoSize == null){
-					videoSize = camera.new Size(0, 0);
-				}
-				videoSize.width = camcorderProfile.videoFrameWidth;
-				videoSize.height = camcorderProfile.videoFrameHeight;
-								
-				p.setPreviewSize(prevSize.width, prevSize.height);
-				//p.setPreviewFrameRate(camcorderProfile.videoFrameRate);
-
-				camera.setParameters(p);
-
-				camera.setPreviewDisplay(holder);
-				camera.startPreview();
-				previewRunning = true;
-			}
-			catch (IOException e) {
-				Log.e(LOGTAG,e.getMessage());
-				e.printStackTrace();
-			}	
-
-			prepareRecorder();	
+		if (holder.getSurface() == null){
+			// preview surface does not exist
+			Log.v(LOGTAG, "ERR: preview surface does not exist");			
+			return;
 		}
 	}
 
 
 	public void surfaceDestroyed(SurfaceHolder holder) {
-		Log.v(LOGTAG, "surfaceDestroyed");
-		if (recording) {
-			recorder.stop();
-			recording = false;
+		Log.v(LOGTAG, "surfaceDestroyed");		
+
+		if(recorder != null){
+			if (recording) {
+				recorder.stop();
+				recording = false;
+			}
+			recorder.release();
+			recorder = null;
 		}
-		recorder.release();
-		recorder = null;
-		if (playing){
-			player.stop();
-			playing =false;
-		}
-		player.release();
-		player = null;
-		
-		if (usecamera) {
-			previewRunning = false;
-			//camera.lock();
-			camera.release();
+
+		if (camera != null){
+			camera.release();        // release the camera for other applications
 			camera = null;
 		}
-		
 	}
 
 	public void startRecording() {
 		recording = true;
-		recorder.start();
-		Log.v(LOGTAG, "Recording Started");
+
+		if(!prepareMediaRecorder()){
+			System.out.println("Fail in prepareMediaRecorder()!\n - Try again -");
+			return;
+		}
+
+		try{
+			recorder.start();
+			recording = true;
+			Log.v(LOGTAG, "Recording Started");
+		} catch(Exception e){
+			System.out.println("Exception trying to start recording, try again!");
+			e.printStackTrace(System.out);
+			recording = false;
+		}
+	}
+
+	private boolean prepareMediaRecorder(){
+
+		camera.unlock();
+		recorder.setCamera(camera);
+
+		recorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
+		recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+
+		recorder.setProfile(mRecorderProfile);
+
+		int id = FileHandler.getVideoID() + 1;
+		auxVideoPath = rootPath + id + ".mp4";	
+		recorder.setOutputFile(auxVideoPath);
+		/*recorder.setMaxDuration(60000); // Set max duration 60 sec.
+		recorder.setMaxFileSize(5000000); // Set max file size 5M*/
+
+		recorder.setPreviewDisplay(holder.getSurface());
+
+		try {
+			recorder.prepare();
+		} catch (IllegalStateException e) {
+			surfaceDestroyed(null);
+			return false;
+		} catch (IOException e) {
+			surfaceDestroyed(null);
+			return false;
+		}
+		return true;
+	}
+
+	private Camera getCameraInstance(){
+		Camera c = null;
+		try {
+			c = Camera.open(); // attempt to get a Camera instance
+		}
+		catch (Exception e){
+			// Camera is not available (in use or does not exist)
+		}
+		return c; // returns null if camera is unavailable
 	}
 
 	public void stopRecording(){
-		recorder.stop();
-		if (usecamera) {
-			try {
-				camera.reconnect();
-			} catch (IOException e) {
-				e.printStackTrace();
+		// stop recording and release camera
+		recorder.stop();  // stop the recording
+
+		int vidID = FileHandler.getVideoID() + 1;
+		String num = String.valueOf(vidID) + ".jpg";
+
+		String thumbPath = FileHandler.getVideoThumbnailsFileHandle().file().getAbsolutePath() +  File.separator;
+
+		String MINI_KIND = thumbPath + "VideoThumbnail" + num;
+
+		try {			
+			OutputStream fos = null;
+
+			//MINI_KIND Thumbnail 96x96
+			Bitmap bmMiniKind = ThumbnailUtils.createVideoThumbnail(auxVideoPath, Thumbnails.MINI_KIND);
+
+			if(bmMiniKind == null){
+				System.out.println("Video corrupt or format not supported! (bmMiniKind)");
+				return;
 			}
-		}			
-		// recorder.release();
-		recording = false;
-		Log.v(LOGTAG, "Recording Stopped");
-		// Let's prepareRecorder so we can record again
-		prepareRecorder();
+
+			fos = new FileOutputStream(new File(MINI_KIND));
+			bmMiniKind.compress(Bitmap.CompressFormat.JPEG, 95, fos);
+			fos.flush();
+			fos.close();
+			if(bmMiniKind != null){
+				bmMiniKind.recycle();
+				bmMiniKind = null;
+			}
+			fos = null;
+
+			FileHandler.incrementVideoID();		
+			Log.v(LOGTAG, "Recording Stopped");
+		} catch (Exception e) {
+			e.printStackTrace();
+			// Something went wrong creating the Video Thumbnail
+			Log.v(LOGTAG, "Something went wrong creating the Video Thumbnail");
+		}
+		recording = false;	
 	}
 
 	public boolean isRecording() {
-		// TODO Auto-generated method stub
 		return recording;
-	}
-
-	public void stopRecOrPlaying() {
-		//recorder.stop();
-	}
-	
-	public void startPlaying(){
-		if(previewRunning){
-			camera.stopPreview();
-			wasPreviewRunning = true;
-		}
-		playing = true;
-		if(player == null){
-			player = new MediaPlayer();
-			player.setDisplay(holder);
-		}
-		if (player.getCurrentPosition() == 0){
-			try{		
-				player.setDisplay(holder);				
-				player.setDataSource(path);
-				player.prepare();
-			} catch(IllegalArgumentException e) {
-			} catch (IOException e) {
-			}
-		}
-
-		Log.v(LOGTAG, "Playing Started");
-		player.start();
-	}
-
-	public void stopPlaying(){
-		player.stop();
-		if (usecamera) {
-			try {
-				camera.reconnect();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}			
-		// recorder.release();
-		playing = false;
-		Log.v(LOGTAG, "Playing Stopped");
-		// Let's prepareRecorder so we can record again
-		prepareRecorder();
-		if(wasPreviewRunning){
-			try {
-				camera.setPreviewDisplay(holder);
-				camera.startPreview();
-				wasPreviewRunning = false;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-	}
-
-	public boolean isPlaying() {
-		// TODO Auto-generated method stub
-		return playing && player != null && player.isPlaying();
 	}
 }

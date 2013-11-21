@@ -17,78 +17,24 @@ import android.view.SurfaceHolder;
 
 public class CameraSurfaceCallback implements SurfaceHolder.Callback  {
 
-	private final int MAX_PIXELS = 1000000;
+	private final int MAX_PREVIEW_PIXELS = 1000000;
+	private final int MAX_PHOTO_PIXELS = 2000000;
 
 	private Camera camera;
-
+	private static Size photoSize;
 
 	public void surfaceCreated( SurfaceHolder holder ) {
 		// Once the surface is created, simply open a handle to the camera hardware.
 		if(camera == null){
 			camera = Camera.open();
-			prepareCamera(holder);
+			if(camera != null){
+				prepareCamera(holder);
+			}
 		}
-
-		/*if (mediaRecorder == null) {
-			System.out.println("<<<<media recorder inicializado");
-			mediaRecorder = new MediaRecorder();
-			mediaRecorder.setPreviewDisplay(holder.getSurface());
-		}
-
-		if (mediaPlayer == null) {
-			System.out.println("<<<<media player inicializado");
-			mediaPlayer = new MediaPlayer();
-			mediaPlayer.setDisplay(holder);				
-		}		*/
 	}
 
 	public void surfaceChanged( SurfaceHolder holder, int format, int width, int height ) {
-		//prepareCamera(holder);
-		/*if (isPreviewRunning)
-        {
-			camera.stopPreview();
-        }
-        Parameters parameters = camera.getParameters();
-        Display display = ((WindowManager)activity.getSystemService(Service.WINDOW_SERVICE)).getDefaultDisplay();
-
-        if(display.getRotation() == Surface.ROTATION_0)
-        {
-            parameters.setPreviewSize(height, width);                           
-            camera.setDisplayOrientation(90);
-        }
-
-        if(display.getRotation() == Surface.ROTATION_90)
-        {
-            parameters.setPreviewSize(width, height);                           
-        }
-
-        if(display.getRotation() == Surface.ROTATION_180)
-        {
-            parameters.setPreviewSize(height, width);               
-        }
-
-        if(display.getRotation() == Surface.ROTATION_270)
-        {
-            parameters.setPreviewSize(width, height);
-            camera.setDisplayOrientation(180);
-        }
-
-        camera.setParameters(parameters);
-        previewCamera(holder); */
-	}
-
-	public void previewCamera(SurfaceHolder holder)
-	{        
-		try 
-		{          
-			System.out.println("CameraSurfaceCallback.previewCamera");
-			camera.setPreviewDisplay(holder);          
-			camera.startPreview();
-		}
-		catch(Exception e)
-		{
-			System.out.println("no se pudo iniciar el preview en surfacechanged"); 
-		}
+		
 	}
 
 	private void prepareCamera(SurfaceHolder holder){
@@ -102,128 +48,62 @@ public class CameraSurfaceCallback implements SurfaceHolder.Callback  {
 
 		// You need to choose the most appropriate previewSize for your app
 		Camera.Size previewSize = null;//.... select one of previewSizes here
-
 		for (Size size : previewSizes) {
 			System.out.println("Available resolution preview: "+size.width+" "+size.height);
-			if (wantToUseThisResolution(size)) {
+			if (wantToUseThisPreviewResolution(size)) {
 				previewSize = size;
 				break;
 			}
 		}			
 		parameters.setPreviewSize(previewSize.width, previewSize.height);
 
-
 		List<Camera.Size> pictureSizes = parameters.getSupportedPictureSizes();
-
-		// You need to choose the most appropriate previewSize for your app
-		Camera.Size pictureSize = null;// .... select one of pictureSizes here
-
+		// You need to choose the most appropriate photoSize for your app
 		for (Size size : pictureSizes) {
-			System.out.println("Available resolution picture: "+size.width+" "+size.height);
-			if (wantToUseThisResolution(size)) {
-				pictureSize = size;
+			if (wantToUseThisPhotoResolution(size)) {
+				photoSize = size;
+			} else if(size.width == 1920 && size.height == 1080){
+				photoSize = size;
 				break;
 			}
 		}
-		parameters.setPictureSize(pictureSize.width, pictureSize.height);
+		parameters.setPictureSize(photoSize.width, photoSize.height);
 
 		camera.setParameters( parameters );
 
 		// We also assign the preview display to this surface...
 		try {
-			camera.setPreviewDisplay( holder );
+			camera.setPreviewDisplay(holder);
 		} catch( IOException e ) {
 			e.printStackTrace();
 		}
 	}
 
-	private boolean wantToUseThisResolution(Size size) {
-		return size.width*size.height < MAX_PIXELS;
+	private boolean wantToUseThisPreviewResolution(Size size) {
+		return size.width*size.height < MAX_PREVIEW_PIXELS;
+	}
+
+	private boolean wantToUseThisPhotoResolution(Size size) {
+		int w = size.width, h = size.height, pixels = w*h;
+		boolean secondHD = pixels < MAX_PHOTO_PIXELS;
+		return  secondHD;
 	}
 
 	public void surfaceDestroyed( SurfaceHolder holder ) {
 		// Once the surface gets destroyed, we stop the preview mode and release
 		// the whole camera since we no longer need it.
-		camera.stopPreview();
-		camera.release();
-		camera = null;
-		/*mediaRecorder.release();
-		mediaPlayer.release();
-		mediaRecorder = null;
-		mediaPlayer = null;*/
+		if(camera != null){
+			camera.stopPreview();
+			camera.release();
+			camera = null;
+		}
 	}
 
 	public Camera getCamera() {
 		return camera;
 	}
-/*
-	public void prepareRecorder(){
-		mediaRecorder.setCamera(camera);
-		mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-		mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-		mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-		mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT); 
-		mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
-	}*/
 
-	/*public void startRecording() {
-		//prepareRecorder();
-		System.out.println("startRecording");
-		mediaRecorder.setOutputFile(fileName);
-		try {
-			       				
-			mediaRecorder.prepare();
-		} catch (IllegalStateException e) { e.printStackTrace(System.out);
-		} catch (IOException e) { e.printStackTrace(System.out);
-		}				        			
-		        				        			
-		mediaRecorder.start();
-		recording = true;
+	public static Size getPhotoSize() {
+		return photoSize;
 	}
-
-	public void stopRecording() {
-		System.out.println("stopRecording");
-		 
-		if (mediaRecorder != null && recording) {
-			recording = false;					
-			mediaRecorder.stop();	
-			mediaRecorder.reset();        			
-			         			
-		} 
-	}
-
-	public void startPlaying() {
-		System.out.println("startPlaying");
-		             		
-		try {
-			mediaPlayer.setDataSource(fileName);
-			mediaPlayer.prepare();
-		} catch (IllegalStateException e) {
-		} catch (IOException e) {
-		}				
-
-		mediaPlayer.start();
-
-	}
-
-	public void stopPlaying() {
-		System.out.println("stopPlaying");
-		
-		if(mediaPlayer != null && mediaPlayer.isPlaying()){
-			mediaPlayer.stop();
-			mediaPlayer.reset();
-		}
-	}
-
-
-	public boolean isRecording(){
-		return this.recording;
-	}
-	
-	public boolean isPlaying(){
-		return mediaPlayer.isPlaying();
-	}*/
-	
-	
-	
 }

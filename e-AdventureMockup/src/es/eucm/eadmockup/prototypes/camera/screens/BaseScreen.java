@@ -11,18 +11,18 @@ package es.eucm.eadmockup.prototypes.camera.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 
-import es.eucm.eadmockup.prototypes.camera.IActionResolver;
 import es.eucm.eadmockup.prototypes.camera.Slideshow;
+import es.eucm.eadmockup.prototypes.camera.facade.IActionResolver;
 
 public class BaseScreen extends InputAdapter {
 
@@ -56,7 +56,7 @@ public class BaseScreen extends InputAdapter {
 	 * names like "com.myname.game1.settings" instead of "settings"
      * Changes to a preferences instance will be cached in memory until flush() is invoked.
 	 */
-	public static Preferences settings;
+	//public static Preferences settings; /*Not used since we save our preferences externally*/
 	
 	/** 
 	 * Loads and stores assets like textures, bitmapfonts, tile maps, sounds, music and so on.
@@ -106,7 +106,7 @@ public class BaseScreen extends InputAdapter {
 	public void show() { }
 	
 	/**
-	 * Called half transition time before we leave the screen.
+	 * Called half transition time before we leave the screen (transition time can be zero).
 	 */
 	public void hide() { }	
 
@@ -164,4 +164,14 @@ public class BaseScreen extends InputAdapter {
 		inputMultiplexer = new InputMultiplexer(stage, this);
 	}
 	
+	public static void disposeStatics(){
+		stage.dispose();
+		stage = null;
+		game = null;
+		sb = null;
+		font = null;
+		am = null;
+		camera = null;
+		resolver = null;
+	}
 }

@@ -8,27 +8,38 @@
 
 package es.eucm.eadmockup.prototypes.camera.screens;
 
+import static com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo;
+import static com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence;
+
+import java.util.List;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GLCommon;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 
-import es.eucm.eadmockup.prototypes.camera.IDeviceVideoControl;
 import es.eucm.eadmockup.prototypes.camera.buttons.Button;
+import es.eucm.eadmockup.prototypes.camera.facade.IDeviceVideoControl;
 
 
 public class VideoScreen extends BaseScreen {
 
-	private static Button startRec, startPlaying;
+	public static String QUALITY;
+
+	private static Button startRec;
 
 	private IDeviceVideoControl videoControl;
 
-	private String rec, pl;
+	private String rec;
 
-	private float playX;
-
+	private List<String> qual;
+	
 	public VideoScreen(IDeviceVideoControl cameraControl){
 		this.videoControl = cameraControl;
 	}
@@ -36,11 +47,31 @@ public class VideoScreen extends BaseScreen {
 	@Override
 	public void create() {
 		TextureAtlas ta = am.get(atlas_src, TextureAtlas.class);
+		TextureRegion ta2 = ta.findRegion("camButton");
 
-		startRec = new Button(ta.findRegion("camButton"),ta.findRegion("camButton"), halfscreenw/2-60, 20, 120, 60);  
-		startPlaying = new Button(ta.findRegion("camButton"),ta.findRegion("camButton"), .75f*screenw-60, 20, 120, 60);  
+		startRec = new Button(ta2, ta2, halfscreenw-60, 20, 120, 60);   
 		touch = new Vector3();
+		setUpRoot();
 
+		this.qual = videoControl.getQualities();
+		QUALITY = qual.get(0);
+		final SelectBox qualities = new SelectBox(qual.toArray(), skin);
+
+		qualities.addListener( new ChangeListener() {
+			@Override
+			public void changed( ChangeEvent event, Actor actor ) {
+				SelectBox source = (SelectBox)event.getListenerActor();
+				int index =  source.getSelectionIndex();
+				String old = QUALITY;
+				QUALITY = qual.get(index);
+
+				if(QUALITY != old){
+					game.setScreen(game.video);
+				}
+			}
+		} );
+		root.top().right();
+		root.add(qualities);
 	}
 
 	/**
@@ -48,35 +79,33 @@ public class VideoScreen extends BaseScreen {
 	 */
 	@Override
 	public void show() {
-		Gdx.input.setInputProcessor(this);
+		Gdx.input.setInputProcessor(inputMultiplexer);
+		root.setVisible(true);
 		videoControl.prepareVideoAsynk();
-		rec = "REC no";
-		pl = "PL no";
-		playX = screenw - font.getBounds(pl).width;
+		rec = "RECORDING: no";
+		stage.addAction(sequence(moveTo(stage.getWidth(), 0),moveTo(0, 0, .25f)));
 	}
 
 	@Override
 	public void render(float delta) {
 		GLCommon gl = Gdx.gl20;
 		gl.glClearColor(0f, 0f, 0f, 0f);
-		gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-		gl.glEnable(GL20.GL_DEPTH_TEST);
-		gl.glEnable(GL20.GL_TEXTURE);                     
-		gl.glEnable(GL20.GL_TEXTURE_2D);     
-		gl.glDepthFunc(GL20.GL_LEQUAL);
-		gl.glClearDepthf(1.0F);
-		
-		
+		gl.glClear(GL20.GL_COLOR_BUFFER_BIT);	
+		stage.act(delta);
 	}
 
 	public void draw()
 	{
 		sb.begin();
 		startRec.draw();
-		startPlaying.draw();
 		font.draw(sb, rec, 0, screenh);
-		font.draw(sb, pl, playX, screenh);
 		sb.end();
+		stage.draw();
+	}
+	
+	@Override
+	public void onHidden() {
+		root.setVisible(false);
 	}
 
 	@Override
@@ -113,7 +142,6 @@ public class VideoScreen extends BaseScreen {
 			camera.unproject(touch);
 
 			startRec.touch(touch.x, touch.y);
-			startPlaying.touch(touch.x, touch.y);
 		}
 		return false;
 	}
@@ -132,36 +160,19 @@ public class VideoScreen extends BaseScreen {
 				if(videoControl.isRecording()){
 					videoControl.stopRecording();
 					if(videoControl.isRecording()){
-						rec = "REC sí";
+						rec = "RECORDING: sí";
 					} else { 
-						rec = "REC no";						
+						rec = "RECORDING: no";						
 					}
 				} else {
 					videoControl.startRecording();
 					if(videoControl.isRecording()){
-						rec = "REC sí";
+						rec = "RECORDING: sí";
 					} else { 
-						rec = "REC no";						
+						rec = "RECORDING: no";						
 					}
 				}
-			} else if(startPlaying.untouch(touch.x, touch.y)){
-				System.out.println("playing");
-				if(videoControl.isPlaying()){
-					videoControl.stopPlaying();
-					if(videoControl.isPlaying()){
-						pl = "PL sí";
-					} else {
-						pl = "PL no";						
-					}
-				} else {
-					videoControl.startPlaying();
-					if(videoControl.isPlaying()){
-						pl = "PL sí";
-					} else {
-						pl = "PL no";						
-					}
-				}
-			}
+			} 
 		}
 		return false;
 	}
@@ -173,7 +184,6 @@ public class VideoScreen extends BaseScreen {
 			camera.unproject(touch);
 
 			startRec.touch(touch.x, touch.y);
-			startPlaying.touch(touch.x, touch.y);
 		}
 		return false;
 	}
